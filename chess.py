@@ -22,15 +22,28 @@ Manage functionality of chess game /////////////////////////////////////////////
 """
 
 #black pieces collection
-chess_piece = {"bK" : "♔", "bQ" : "♕", "bR" : "♖", \
+CHESS_PIECE = {"bK" : "♔", "bQ" : "♕", "bR" : "♖", \
                 "bB" : "♗", "bN" : "♘", "bP" : "♙", \
                 "wK" : "♚", "wQ" : "♛", "wR" : "♜", \
                 "wB" : "♝", "wN" : "♞", "wP" : "♟︎", \
                 }
 
-grid_notation = {'a' : 1, 'b' : 2, 'c' : 3, 'd' : 4, \
+GRID_NOTATION = {'a' : 1, 'b' : 2, 'c' : 3, 'd' : 4, \
                  'e' : 5, 'f' : 6, 'g' : 7, 'h' : 8
                  }
+
+#list of pieces in object form
+pieces = []
+
+#create function to find piece in list, since done so often. returns object
+def find_piece(coordinate):
+   for piece in pieces:
+            if piece.coordinates == coordinate:
+                return piece
+
+def find_test():
+   for piece in pieces:
+        print(piece.name)
 
 class chessPiece(object):
     """
@@ -38,62 +51,74 @@ class chessPiece(object):
     including coordinates and procedures
     """
     #holds on instances in a list, if any are updated, they are also updated in the list
-    instances = []
 
     def __init__(self, name, coordinates):
         self.name = name
         self.coordinates = coordinates
         #track all instances
-        chessPiece.instances.append(self)
+        #chessPiece.pieces.append(self)
 
     def move(move):
+        #sanitize input
+        #format cannot be longer than 8 chars and must match letter(num) to letter(num)
+        if len(move) > 8 or not re.match(r'([a-h])(\d) to ([a-h])(\d)', move):
+            return "Not a valid move"
+        
         #match letter and digit of each coordinate in string and swap for number
         match = re.match(r'([a-h])(\d) to ([a-h])(\d)', move)
-        if match:
-            sub1 = grid_notation[match.group(1)]
-            sub2 = int(match.group(2))
-            sub3 = grid_notation[match.group(3)]
-            sub4 = int(match.group(4))
+        sub1 = GRID_NOTATION[match.group(1)]
+        sub2 = int(match.group(2))
+        sub3 = GRID_NOTATION[match.group(3)]
+        sub4 = int(match.group(4))
 
-            old = (sub1, sub2)
-            new = (sub3, sub4)
-
-            #iterate through all pieces, if found piece and valid move, change coordinates
-            for piece in chessPiece.get_all_instances():
-                if piece.coordinates == old:
-                    if piece.validMove(new):
-                        piece.coordinates = new
-                        return f"{piece.name} moved to {match.group(3)}, {match.group(4)}"
-                    else:
-                        return "Not a valid move"
-            return "No piece found at the given coordinates"
-        else:
-            return "Not a valid input format"
+        old = (sub1, sub2)
+        new = (sub3, sub4)
         
-    def get_all_instances():
-        return list(chessPiece.instances)
-    
-    def destroy(self, name):
-        pass
+        piece = find_piece(old)
+        
+        #iterate through all pieces, if found piece and valid move, change coordinates
+        if piece != False:
+            if piece.validMove(old, new):
+                piece.coordinates = new
+                return f"{piece.name} moved to {new}"
+            else:
+                return "Not a valid move"
+        else:
+            return "No piece found at the given coordinates"
 
-    def validMove(self, new):
+    def validMove(self, old, new):
         #check to see if in bounds of board
-        if new[0] < 9 and new[1] < 9:
+        if 1 <= new[0] < 9 and 1 <= new[1] < 9:
+            # Check if one of your own pieces is there
+            if find_piece(new) and find_piece(old).name[0] == find_piece(new).name[0]:
+                return False
+            #then it's opposite piece, valid move and delete other piece
+            elif find_piece(new) and find_piece(old).name[0] != find_piece(new).name[0]:
+                pieces.remove(find_piece(new))
+                return True
+            #no pieces on spot and within board bounds
             return True
         else:
+            #not in board bounds
             return False
 
     def __str__(self):
         return self.name + ' ' + str(self.coordinates)
 
 class Pawn(chessPiece):
-    def validMoves(self, board):
+    def validMove(self, old, new):
         # Call the parent class's validMove before using own
-        if super().validMove(board):
-            pass
+        if super().validMove(old, new):
+            x1, y1 = old
+            x2, y2 = new
+            valid_moves = [(0, 1), (1, 1)]
+            if (x2 - x1, y2 - y1) in valid_moves:
+                return True
+            else:
+                return False
 
 class Rook(chessPiece):
-    def validMoves(self, board):
+    def validMoves(self, old, new):
         pass
 
 class Bishop(chessPiece):
@@ -116,42 +141,44 @@ class King(chessPiece):
 #set up initial pieces
 def create_pieces():
     #build white pieces
-    Pawn('wP', (1,2)) 
-    Pawn('wP', (2,2))
-    Pawn('wP', (3,2)) 
-    Pawn('wP', (4,2))
-    Pawn('wP', (5,2)) 
-    Pawn('wP', (6,2))
-    Pawn('wP', (7,2)) 
-    Pawn('wP', (8,2))
-
-    Rook('wR', (1,1))
-    Rook('wR', (8,1))
-    Bishop('wB', (2,1))
-    Bishop('wB', (7,1))
-    Knight('wN', (3,1))
-    Knight('wN', (6,1))
-    King('wK', (4,1))
-    Queen('wK', (5,1))
-
+    pieces.extend([
+    Pawn('wP', (1, 2)),
+    Pawn('wP', (2, 2)),
+    Pawn('wP', (3, 2)),
+    Pawn('wP', (4, 2)),
+    Pawn('wP', (5, 2)),
+    Pawn('wP', (6, 2)),
+    Pawn('wP', (7, 2)),
+    Pawn('wP', (8, 2)),
+    Rook('wR', (1,1)),
+    Rook('wR', (8,1)),
+    Bishop('wB', (2,1)),
+    Bishop('wB', (7,1)),
+    Knight('wN', (3,1)),
+    Knight('wN', (6,1)),
+    King('wK', (4,1)),
+    Queen('wQ', (5,1)),
+])
+  
     #build black pieces
-    Pawn('bP', (1,7)) 
-    Pawn('bP', (2,7))
-    Pawn('bP', (3,7)) 
-    Pawn('bP', (4,7))
-    Pawn('bP', (5,7)) 
-    Pawn('bP', (6,7))
-    Pawn('bP', (7,7)) 
-    Pawn('bP', (8,7))
-
-    Rook('bR', (1,8))
-    Rook('bR', (8,8))
-    Bishop('bB', (2,8))
-    Bishop('bB', (7,8))
-    Knight('bN', (3,8))
-    Knight('bN', (6,8))
-    King('bK', (5,8))
-    Queen('bK', (4,8))
+    pieces.extend([
+    Pawn('bP', (1,7)), 
+    Pawn('bP', (2,7)),
+    Pawn('bP', (3,7)), 
+    Pawn('bP', (4,7)),
+    Pawn('bP', (5,7)), 
+    Pawn('bP', (6,7)),
+    Pawn('bP', (7,7)), 
+    Pawn('bP', (8,7)),
+    Rook('bR', (1,8)),
+    Rook('bR', (8,8)),
+    Bishop('bB', (2,8)),
+    Bishop('bB', (7,8)),
+    Knight('bN', (3,8)),
+    Knight('bN', (6,8)),
+    King('bK', (5,8)),
+    Queen('bQ', (4,8)),
+])
 
 #8x8, x-axis is a-h, y-axis is 1-8
 #chess utf-8 border pieces, labelled clockwise from 12oclock for direction of lines 
@@ -163,7 +190,7 @@ cb = {"ud" : "│", "rd" : "┌", "rl" : "─", \
     "urd" : "├", "udl" : "┤" }
 """
 create function to render board and pieces on start
--board will have 3 spaces of padding on left and right of each square
+-board will have 3 spaces in each square
 -8 squares share border left/right
 -requires 9 ud lines
 
@@ -232,10 +259,10 @@ def render_board():
                     #(j,i//2) is tuple where(i//2) to account for midline 
                     # rows in between that skew current coordinates
                     found_piece = False
-                    for piece in chessPiece.get_all_instances():
+                    for piece in pieces:
                         if (j,i//2) == piece.coordinates:
                             #render piece
-                            row += ' ' + chess_piece[piece.name] + ' '
+                            row += ' ' + CHESS_PIECE[piece.name] + ' '
                             found_piece = True
                             break
                     if not found_piece:
@@ -250,14 +277,10 @@ def render_board():
 
     return '\n'.join(board_lines)
 
-
-create_pieces()
-
-print(render_board())
-
 """
 window/GUI management and initial launch /////////////////////////////////////////
 """
+
 def send_prompt():
     #clear your text and get it via user_input
     user_input = text_input.get("1.0", "end-1c")  # Get all text from the text area
@@ -269,53 +292,73 @@ def send_prompt():
 
     #update chessboard
     print(chessPiece.move(user_input))
-    chess_output.delete("1.0", "end")  # Clear previous content
-    chess_output.insert("1.0", render_board())
+    
+    update_chessboard()
 
+    #print(find_test())
 def clear_text(event):
     text_input.delete("1.0", "end")  # Clear the text area
     text_input.unbind("<FocusIn>")  # Unbind this event after the first click
 
-#create initial frame
-root = Tk()
-root.title("crazy chess")
-root.winfo_rgb('#3FF')
-frm = ttk.Frame(root, padding=40)
-frm.grid()
-#create label
-ttk.Label(frm, text="crazy chess").grid(column=0, row=0)
+def update_chessboard():
+    chess_output.delete("1.0", "end")  # Clear previous content
+    chess_output.insert("1.0", render_board())
+    #center with tag
+    chess_output.tag_add("center", "1.0", "end")
 
-#create label
-ttk.Label(frm, text="AI Output:").grid(column=0, row=1)
+def create_window():
+    #create initial frame
+    root = Tk()
+    root.title("Crazy Chess")
+    root.winfo_rgb('#3FF')
+    frm = ttk.Frame(root, padding=40)
+    frm.grid()
 
-# Create an output area for Gemini output
-text_output = Text(frm, width=40, height=10, wrap="word")
-text_output.grid(column=0, row=2, columnspan=3, pady=(20, 0))
+    #create label
+    ttk.Label(frm, text="AI Output:").grid(column=0, row=1)
 
-# Create a Scrollbar widget for the output Text widget
-scrollbar_output = Scrollbar(frm, orient="vertical", command=text_output.yview)
-text_output.config(yscrollcommand=scrollbar_output.set)
-scrollbar_output.grid(column=3, row=2, columnspan=3, sticky="ns", padx=(10))
+    # Create an output area for Gemini output
+    global text_output
+    text_output = Text(frm, width=40, height=10, wrap="word")
+    text_output.grid(column=0, row=2, columnspan=3, pady=(20, 0))
+    text_output.insert("1.0", "Welcome to Crazy Chess...")  # Insert new content
 
-#textinput area contains tag to designate text color
-text_input = Text(frm, width=40, height=10, wrap="word")
-text_input.tag_configure("colored", foreground="grey50")
-text_input.insert('1.0', 'Enter move (ex. a2 to a4):', 'colored')
-text_input.grid(column=0, row=6, columnspan=3, pady=(20, 0))
-# Bind the clear_text function to the FocusIn event
-text_input.bind("<FocusIn>", clear_text)
+    # Create a Scrollbar widget for the output Text widget
+    scrollbar_output = Scrollbar(frm, orient="vertical", command=text_output.yview)
+    text_output.config(yscrollcommand=scrollbar_output.set)
+    scrollbar_output.grid(column=3, row=2, columnspan=3, sticky="ns", padx=(10))
 
-# Create chessboard area
-chess_output = Text(frm, width=40, height=20, wrap="word")
-chess_output.grid(column=0, row=5, columnspan=3, pady=(20, 0))
-#render initial board
-chess_output.insert("1.0", render_board())
+    #textinput area contains tag to designate text color
+    global text_input
+    text_input = Text(frm, width=40, height=10, wrap="word")
+    text_input.tag_configure("colored", foreground="grey50")
+    text_input.insert('1.0', 'Enter move (ex. a2 to a4):', 'colored')
+    text_input.grid(column=0, row=6, columnspan=3, pady=(20, 0))
+    # Bind the clear_text function to the FocusIn event
+    text_input.bind("<FocusIn>", clear_text)
 
-#send button
-ttk.Button(frm, text="Send", command=send_prompt).grid(column=2, row=0)
+    # Create chessboard area
+    global chess_output
+    chess_output = Text(frm, width=40, height=17, wrap="word")
+    chess_output.grid(column=0, row=5, columnspan=3, pady=(20, 0))
+    # Configure the tag for centering text
+    chess_output.tag_configure("center", justify='center')
 
-#quit button
-ttk.Button(frm, text="Quit", command=root.destroy).grid(column=1, row=0)
+    # Render initial board and center text
+    chess_output.insert("1.0", render_board())
+    chess_output.tag_add("center", "1.0", "end")
 
-#open window
-root.mainloop()
+    #send button
+    ttk.Button(frm, text="Send", command=send_prompt).grid(column=2, row=0)
+
+    #quit button
+    ttk.Button(frm, text="Quit", command=root.destroy).grid(column=1, row=0)
+    root.mainloop()
+
+#start code
+if __name__ == "__main__":
+    create_pieces()
+    print(render_board())
+    
+    #create and open window
+    create_window()
