@@ -5,10 +5,22 @@ prompt engineer:
 We are going to play chess using algebraic notation. 
 you will be black located at the top of the board. 
 Can you say all of your moves referencing the from and to notation 
-(for example: a7-a8 would be moving your pawn down)?
+(for example: a7-a6 would be moving your pawn down)?
 After you move, can you immediately send another message saying something 
 intimidating and funny? Every time I reply with a move, 
 you repeat the process and pick another move. You go first. Go
+"""
+
+"""
+Proposed changes:
+-pathing logic where piece cannot move through other piece (except for knight)
+    -pathing not relevant for current pawn logic, or knight logic
+-does not include "en passant" or "castling"
+-ability to promote pawn when reaching other side
+-logic for king not moving into check (check if within path of enemy piece)
+-if piece not found, for example, when selecting a blank space, error is thrown because of line 407
+
+-otherwise, the game is highly playable
 """
 #import tkinter for window management
 from tkinter import *
@@ -22,10 +34,10 @@ Manage functionality of chess game /////////////////////////////////////////////
 """
 
 #black pieces collection
-CHESS_PIECE = {"bK" : "♔", "bQ" : "♕", "bR" : "♖", \
-                "bB" : "♗", "bN" : "♘", "bP" : "♙", \
-                "wK" : "♚", "wQ" : "♛", "wR" : "♜", \
-                "wB" : "♝", "wN" : "♞", "wP" : "♟︎", \
+CHESS_PIECE = {"wK" : "♔", "wQ" : "♕", "wR" : "♖", \
+                "wB" : "♗", "wN" : "♘", "wP" : "♙", \
+                "bK" : "♚", "bQ" : "♛", "bR" : "♜", \
+                "bB" : "♝", "bN" : "♞", "bP" : "♟︎", \
                 }
 
 GRID_NOTATION = {'a' : 1, 'b' : 2, 'c' : 3, 'd' : 4, \
@@ -37,13 +49,9 @@ pieces = []
 
 #create function to find piece in list, since done so often. returns object
 def find_piece(coordinate):
-   for piece in pieces:
-            if piece.coordinates == coordinate:
-                return piece
-
-def find_test():
-   for piece in pieces:
-        print(piece.name)
+    for piece in pieces:
+        if piece.coordinates == coordinate:
+            return piece
 
 class chessPiece(object):
     """
@@ -60,12 +68,12 @@ class chessPiece(object):
 
     def move(move):
         #sanitize input
-        #format cannot be longer than 8 chars and must match letter(num) to letter(num)
-        if len(move) > 8 or not re.match(r'([a-h])(\d) to ([a-h])(\d)', move):
+        #format cannot be longer than 5 chars and must match letter(num) to letter(num)
+        if len(move) > 5 or not re.match(r'([a-h])(\d)-([a-h])(\d)', move):
             return "Not a valid move"
         
         #match letter and digit of each coordinate in string and swap for number
-        match = re.match(r'([a-h])(\d) to ([a-h])(\d)', move)
+        match = re.match(r'([a-h])(\d)-([a-h])(\d)', move)
         sub1 = GRID_NOTATION[match.group(1)]
         sub2 = int(match.group(2))
         sub3 = GRID_NOTATION[match.group(3)]
@@ -78,7 +86,7 @@ class chessPiece(object):
         
         #iterate through all pieces, if found piece and valid move, change coordinates
         if piece != False:
-            if piece.validMove(old, new):
+            if piece.validMove(new):
                 piece.coordinates = new
                 return f"{piece.name} moved to {new}"
             else:
@@ -86,15 +94,16 @@ class chessPiece(object):
         else:
             return "No piece found at the given coordinates"
 
-    def validMove(self, old, new):
+    def validMove(self, new):
+        new_piece = find_piece(new)
         #check to see if in bounds of board
         if 1 <= new[0] < 9 and 1 <= new[1] < 9:
-            # Check if one of your own pieces is there
-            if find_piece(new) and find_piece(old).name[0] == find_piece(new).name[0]:
+            # Check if one of your own pieces is there, cannot move
+            if new_piece and self.name[0] == new_piece.name[0]:
                 return False
-            #then it's opposite piece, valid move and delete other piece
-            elif find_piece(new) and find_piece(old).name[0] != find_piece(new).name[0]:
-                pieces.remove(find_piece(new))
+            #then it's opposite piece, valid move and delete other piece from list
+            elif new_piece and self.name[0] != new_piece.name[0]:
+                pieces.remove(new_piece)
                 return True
             #no pieces on spot and within board bounds
             return True
@@ -106,50 +115,202 @@ class chessPiece(object):
         return self.name + ' ' + str(self.coordinates)
 
 class Pawn(chessPiece):
-    def validMove(self, old, new):
-        # Call the parent class's validMove before using own
-        if super().validMove(old, new):
-            x1, y1 = old
-            x2, y2 = new
-            valid_moves = [(0, 1), (1, 1)]
-            if (x2 - x1, y2 - y1) in valid_moves:
-                return True
-            else:
-                return False
+    #check if the move is valid for the piece, including parent class logic
+    def validMove(self, new):
+        check = False
+        x1, y1 = self.coordinates
+        x2, y2 = new
 
+        #if first letter white (at the bottom)/////////////////////////////
+        if self.name[0] == 'w':
+            #first move
+            if y1 == 2:
+                #attacking
+                if find_piece(new) != None:
+                    valid_moves = [(1, 1), (-1, 1)]
+                #regular move
+                else:
+                    valid_moves = [(0, 2), (0, 1)]
+            #any other move
+            else:
+                #attacking
+                if find_piece(new) != None:
+                    valid_moves = [(1, 1), (-1, 1)]
+                #regular move
+                else:
+                    valid_moves = [(0, 1)]
+        #if black,(at top)/////////////////////////////////////////////////
+        else:
+            #first move
+            if y1 == 7:
+                #attacking
+                if find_piece(new) != None:
+                    valid_moves = [(1, -1), (1, 1)]
+                #regular move
+                else:
+                    valid_moves = [(0, -2), (0, -1)]
+            #any other move
+            else:
+                #attacking
+                if find_piece(new) != None:
+                    valid_moves = [(1, -1),(1, 1)]
+                #regular move
+                else:
+                    valid_moves = [(0, -1), (0, -1)]
+
+        #see if move distance falls in list of valid moves//////////////////
+        if (x2 - x1, y2 - y1) in valid_moves:
+            check = True
+        else:
+            check = False
+
+        #next, check parent classes validMove method before returning////////
+        if check == True and super().validMove(new):
+            return True
+        else:
+            return False
+        
 class Rook(chessPiece):
-    def validMoves(self, old, new):
-        pass
+    def validMove(self, new):
+        check = False
+        x1, y1 = self.coordinates
+        x2, y2 = new
+        valid_moves = []
+        for i in range(1,8):
+            #will need to create coordinates for maximum distance to move in each direction 
+            #which is a difference of 7 squares
+            #construct horizontal
+            valid_moves.append((i,0))
+            valid_moves.append((-i,0))
+            #construct vertical
+            valid_moves.append((0,i))
+            valid_moves.append((0,-i))
+
+        #see if move distance falls in list of valid moves//////////////////
+        if (x2 - x1, y2 - y1) in valid_moves:
+            check = True
+        else:
+            check = False
+
+        #next, check parent classes validMove method before returning////////
+        if check == True and super().validMove(new):
+            return True
+        else:
+            return False
 
 class Bishop(chessPiece):
-    def validMoves(self, board):
-        pass
+    def validMove(self, new):
+        check = False
+        x1, y1 = self.coordinates
+        x2, y2 = new
+        valid_moves = []
+        for i in range(1,8):
+            #will need to create coordinates for maximum distance to move in each direction 
+            #which is a difference of 7 squares
+            #construct diagonal upright/downleft
+            valid_moves.append((i,i))
+            valid_moves.append((-i,-i))
+            #construct diagonal upleft/downright
+            valid_moves.append((-i,i))
+            valid_moves.append((i,-i))
+
+        #see if move distance falls in list of valid moves//////////////////
+        if (x2 - x1, y2 - y1) in valid_moves:
+            check = True
+        else:
+            check = False
+
+        #next, check parent classes validMove method before returning////////
+        if check == True and super().validMove(new):
+            return True
+        else:
+            return False
 
 class Knight(chessPiece):
-    def validMoves(self, board):
-        pass
+    def validMove(self, new):
+        check = False
+        x1, y1 = self.coordinates
+        x2, y2 = new
+        valid_moves = [(1, 2), (2, 1), (1, -2), (-2, 1), (-1, 2), (2, -1), (-1, -2), (-2, -1)]
 
+        #see if move distance falls in list of valid moves//////////////////
+        if (x2 - x1, y2 - y1) in valid_moves:
+            check = True
+        else:
+            check = False
+
+        #next, check parent classes validMove method before returning////////
+        if check == True and super().validMove(new):
+            return True
+        else:
+            return False
+        
 class Queen(chessPiece):
-    def validMoves(self, board):
-        pass
+    def validMove(self, new):
+        check = False
+        x1, y1 = self.coordinates
+        x2, y2 = new
+        valid_moves = []
+        for i in range(1,8):
+            #will need to create coordinates for maximum distance to move in each direction 
+            #which is a difference of 7 squares
+            #construct horizontal
+            valid_moves.append((i,0))
+            valid_moves.append((-i,0))
+            #construct vertical
+            valid_moves.append((0,i))
+            valid_moves.append((0,-i))
+            #construct diagonal upright/downleft
+            valid_moves.append((i,i))
+            valid_moves.append((-i,-i))
+            #construct diagonal upleft/downright
+            valid_moves.append((-i,i))
+            valid_moves.append((i,-i))
+
+        #see if move distance falls in list of valid moves//////////////////
+        if (x2 - x1, y2 - y1) in valid_moves:
+            check = True
+        else:
+            check = False
+
+        #next, check parent classes validMove method before returning////////
+        if check == True and super().validMove(new):
+            return True
+        else:
+            return False
 
 class King(chessPiece):
-    def validMoves(self, board):
-        pass
+    def validMove(self, new):
+        check = False
+        x1, y1 = self.coordinates
+        x2, y2 = new
+        valid_moves = [(0, 1), (1, 1), (1, 0), (1, -1), (0, 1), (-1, 1), (-1, 0), (-1, -1)]
+
+        #see if move distance falls in list of valid moves//////////////////
+        if (x2 - x1, y2 - y1) in valid_moves:
+            check = True
+        else:
+            check = False
+
+        #next, check parent classes validMove method before returning////////
+        if check == True and super().validMove(new):
+            return True
+        else:
+            return False
 
 
 #set up initial pieces
 def create_pieces():
     #build white pieces
     pieces.extend([
-    Pawn('wP', (1, 2)),
-    Pawn('wP', (2, 2)),
-    Pawn('wP', (3, 2)),
-    Pawn('wP', (4, 2)),
-    Pawn('wP', (5, 2)),
-    Pawn('wP', (6, 2)),
-    Pawn('wP', (7, 2)),
-    Pawn('wP', (8, 2)),
+    Pawn('wP', (1,2)),
+    Pawn('wP', (2,2)),
+    Pawn('wP', (3,2)),
+    Pawn('wP', (4,2)),
+    Pawn('wP', (5,2)),
+    Pawn('wP', (6,2)),
+    Pawn('wP', (7,2)),
+    Pawn('wP', (8,2)),
     Rook('wR', (1,1)),
     Rook('wR', (8,1)),
     Bishop('wB', (2,1)),
@@ -199,7 +360,7 @@ calculating board
 -board is 8 rows * 33 + 9 separator lines * 33
 =264 + 297 
 =561 chars total
-total rows is 17
+total renderable rows is 15 (top and bottom static so not included)
 
 32 pieces will be present at start, 16 black and 16 white
 
@@ -281,10 +442,12 @@ def render_board():
 window/GUI management and initial launch /////////////////////////////////////////
 """
 
-def send_prompt():
+def send_prompt(event=None):
     #clear your text and get it via user_input
     user_input = text_input.get("1.0", "end-1c")  # Get all text from the text area
     text_input.delete("1.0", "end")  # Clear the text area
+    # Set the cursor position to the first line
+    text_input.mark_set("insert", "1.0")
 
     # Update the output Text widget with the model's response
     text_output.delete("1.0", "end")  # Clear previous content
@@ -295,10 +458,15 @@ def send_prompt():
     
     update_chessboard()
 
-    #print(find_test())
+    # Prevent the default behavior of the Enter key in the Text widget by passing break to Tkinter
+    #this cancels \n new line behavior in text box
+    #if send key is used, event variable is not set so defaults to None
+    if event:
+        return "break"
+
 def clear_text(event):
     text_input.delete("1.0", "end")  # Clear the text area
-    text_input.unbind("<FocusIn>")  # Unbind this event after the first click
+    text_input.unbind("<FocusIn>")  # Unbind this event after the first click so doesn't clear future input
 
 def update_chessboard():
     chess_output.delete("1.0", "end")  # Clear previous content
@@ -332,10 +500,12 @@ def create_window():
     global text_input
     text_input = Text(frm, width=40, height=10, wrap="word")
     text_input.tag_configure("colored", foreground="grey50")
-    text_input.insert('1.0', 'Enter move (ex. a2 to a4):', 'colored')
+    text_input.insert('1.0', 'Enter move in format (ex. a2-a4):', 'colored')
     text_input.grid(column=0, row=6, columnspan=3, pady=(20, 0))
     # Bind the clear_text function to the FocusIn event
     text_input.bind("<FocusIn>", clear_text)
+    # Bind the Enter key to the send_text function
+    text_input.bind("<Return>", send_prompt)
 
     # Create chessboard area
     global chess_output
@@ -359,6 +529,6 @@ def create_window():
 if __name__ == "__main__":
     create_pieces()
     print(render_board())
-    
+
     #create and open window
     create_window()
