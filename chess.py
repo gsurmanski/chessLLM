@@ -36,8 +36,8 @@ Manage functionality of chess game /////////////////////////////////////////////
 #black pieces collection
 CHESS_PIECE = {"wK" : "♔", "wQ" : "♕", "wR" : "♖", \
                 "wB" : "♗", "wN" : "♘", "wP" : "♙", \
-                "bK" : "♚", "bQ" : "♛", "bR" : "♜", \
-                "bB" : "♝", "bN" : "♞", "bP" : "♟︎", \
+                "bk" : "♚", "bq" : "♛", "br" : "♜", \
+                "bb" : "♝", "bn" : "♞", "bp" : "♟︎", \
                 }
 
 GRID_NOTATION = {'a' : 1, 'b' : 2, 'c' : 3, 'd' : 4, \
@@ -52,6 +52,35 @@ def find_piece(coordinate):
     for piece in pieces:
         if piece.coordinates == coordinate:
             return piece
+
+#create function to obtain save state in Forsyth-Edwards Notation
+def state():
+    notation = ''
+    #iterate rows
+    for y in range(1,9):
+        if y != 1:
+            notation += '/'
+        #iterate columns
+        count = 0
+        for x in range(1,9):
+            #check for pieces on each square. use count for empty squares between pieces
+            exist = False
+            for piece in pieces:
+                if piece.coordinates == (x,y):
+                    #if count more than 0, add to string
+                    if count > 0:
+                        notation += str(count)
+
+                    #if exists piece, add to notation string the name letter
+                    exist = True
+                    notation += piece.name[1]
+                    count = 0
+            if exist == False:  
+                count += 1
+        #for end of each row, add count if greater than 0
+        if count > 0:
+            notation += str(count)     
+    return notation
 
 class chessPiece(object):
     """
@@ -323,22 +352,22 @@ def create_pieces():
   
     #build black pieces
     pieces.extend([
-    Pawn('bP', (1,7)), 
-    Pawn('bP', (2,7)),
-    Pawn('bP', (3,7)), 
-    Pawn('bP', (4,7)),
-    Pawn('bP', (5,7)), 
-    Pawn('bP', (6,7)),
-    Pawn('bP', (7,7)), 
-    Pawn('bP', (8,7)),
-    Rook('bR', (1,8)),
-    Rook('bR', (8,8)),
-    Bishop('bB', (2,8)),
-    Bishop('bB', (7,8)),
-    Knight('bN', (3,8)),
-    Knight('bN', (6,8)),
-    King('bK', (5,8)),
-    Queen('bQ', (4,8)),
+    Pawn('bp', (1,7)), 
+    Pawn('bp', (2,7)),
+    Pawn('bp', (3,7)), 
+    Pawn('bp', (4,7)),
+    Pawn('bp', (5,7)), 
+    Pawn('bp', (6,7)),
+    Pawn('bp', (7,7)), 
+    Pawn('bp', (8,7)),
+    Rook('br', (1,8)),
+    Rook('br', (8,8)),
+    Bishop('bb', (2,8)),
+    Bishop('bb', (7,8)),
+    Knight('bn', (3,8)),
+    Knight('bn', (6,8)),
+    King('bk', (5,8)),
+    Queen('bq', (4,8)),
 ])
 
 #8x8, x-axis is a-h, y-axis is 1-8
@@ -474,6 +503,9 @@ def update_chessboard():
     #center with tag
     chess_output.tag_add("center", "1.0", "end")
 
+    #print state notation
+    print(state())
+
 def create_window():
     #create initial frame
     root = Tk()
@@ -530,5 +562,6 @@ if __name__ == "__main__":
     create_pieces()
     print(render_board())
 
+    print(state())
     #create and open window
     create_window()
