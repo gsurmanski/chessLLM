@@ -9,6 +9,11 @@ Can you say all of your moves referencing the from and to notation
 After you move, can you immediately send another message saying something 
 intimidating and funny? Every time I reply with a move, 
 you repeat the process and pick another move. You go first. Go
+
+updated engineer:
+the current board state is RBNKQNBR/PPPPPPPP/8/8/8/8/pppppppp/rbnqknbr. 
+What is your best move as black? Please reference your move using from and 
+to notation (for example: a7-a6). Only say your move, nothing else.
 """
 
 """
@@ -22,12 +27,21 @@ Proposed changes:
 
 -otherwise, the game is highly playable
 """
+#import google ai modules
+import google.generativeai as genai
+import os
+
 #import tkinter for window management
 from tkinter import *
 from tkinter import ttk
 
 #import re for matching regex
 import re
+
+#define gemini model and api key
+genai.configure(api_key=os.environ["API_KEY"])
+
+model = genai.GenerativeModel('gemini-1.5-flash')
 
 """
 Manage functionality of chess game ///////////////////////////////////////////////////
@@ -55,14 +69,15 @@ def find_piece(coordinate):
 
 #create function to obtain save state in Forsyth-Edwards Notation
 def state():
+    #handle positioning of pieces
     notation = ''
     #iterate rows
-    for y in range(1,9):
-        if y != 1:
+    for y in range(8,0,-1):
+        if y != 8:
             notation += '/'
         #iterate columns
         count = 0
-        for x in range(1,9):
+        for x in range(8,0,-1):
             #check for pieces on each square. use count for empty squares between pieces
             exist = False
             for piece in pieces:
@@ -80,7 +95,16 @@ def state():
         #for end of each row, add count if greater than 0
         if count > 0:
             notation += str(count)     
+    '''
+    #handle turn state
+    if turn == 'w':
+        turn = ' b'
+    else:
+        turn = ' w'
+    notation += turn
+    '''
     return notation
+    
 
 class chessPiece(object):
     """
@@ -97,12 +121,15 @@ class chessPiece(object):
 
     def move(move):
         #sanitize input
+        #remove trailing space
+        move = move.strip()
+        '''
         #format cannot be longer than 5 chars and must match letter(num) to letter(num)
         if len(move) > 5 or not re.match(r'([a-h])(\d)-([a-h])(\d)', move):
             return "Not a valid move"
-        
+        '''
         #match letter and digit of each coordinate in string and swap for number
-        match = re.match(r'([a-h])(\d)-([a-h])(\d)', move)
+        match = re.search(r'([a-h])(\d)-([a-h])(\d)', move)
         sub1 = GRID_NOTATION[match.group(1)]
         sub2 = int(match.group(2))
         sub3 = GRID_NOTATION[match.group(3)]
@@ -482,9 +509,8 @@ def send_prompt(event=None):
     text_output.delete("1.0", "end")  # Clear previous content
     text_output.insert("1.0", user_input)  # Insert new content
 
-    #update chessboard
+    #update chessboard and fulfil your turn
     print(chessPiece.move(user_input))
-    
     update_chessboard()
 
     # Prevent the default behavior of the Enter key in the Text widget by passing break to Tkinter
@@ -492,6 +518,17 @@ def send_prompt(event=None):
     #if send key is used, event variable is not set so defaults to None
     if event:
         return "break"
+
+    
+    #now, fulfil AI turn since yours is done
+    response = model.generate_content(f'the current board state is {state()}. What is your move as black? Please reference your move using from and to notation (for example: a7-a6). Only say your move, nothing else. Make sure to pick a move that is valid based on the board state mentioned in this prompt')
+
+    text_output.insert("1.0", response.text)  # Insert AI response
+    print(response.text)
+    print(chessPiece.move(response.text))
+    update_chessboard()
+    
+    
 
 def clear_text(event):
     text_input.delete("1.0", "end")  # Clear the text area
