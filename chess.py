@@ -40,7 +40,7 @@ import re
 
 #define gemini model and api key
 genai.configure(api_key=os.environ["API_KEY"])
-
+print(os.environ["API_KEY"])
 model = genai.GenerativeModel('gemini-1.5-flash')
 
 """
@@ -61,11 +61,15 @@ GRID_NOTATION = {'a' : 1, 'b' : 2, 'c' : 3, 'd' : 4, \
 #list of pieces in object form
 pieces = []
 
-#create function to find piece in list, since done so often. returns object
+
 def find_piece(coordinate):
+    """
+    create function to find piece in list, since done so often. returns object
+    """
     for piece in pieces:
         if piece.coordinates == coordinate:
             return piece
+    return None
 
 #create function to obtain save state in Forsyth-Edwards Notation
 def state():
@@ -215,48 +219,28 @@ class Pawn(chessPiece):
                     valid_moves = [(0, -1), (0, -1)]
 
         #see if move distance falls in list of valid moves//////////////////
-        if (x2 - x1, y2 - y1) in valid_moves:
-            check = True
-        else:
-            check = False
-
-        #next, check parent classes validMove method before returning////////
-        if check == True and super().validMove(new):
-            return True
-        else:
-            return False
+        return (x2 - x1, y2 - y1) in valid_moves and super().validMove(new)
         
 class Rook(chessPiece):
     def validMove(self, new):
-        check = False
         x1, y1 = self.coordinates
         x2, y2 = new
         valid_moves = []
-        for i in range(1,8):
+        for i in range(1, 8):
             #will need to create coordinates for maximum distance to move in each direction 
             #which is a difference of 7 squares
             #construct horizontal
-            valid_moves.append((i,0))
-            valid_moves.append((-i,0))
+            valid_moves.append((i, 0))
+            valid_moves.append((-i, 0))
             #construct vertical
-            valid_moves.append((0,i))
-            valid_moves.append((0,-i))
+            valid_moves.append((0, i))
+            valid_moves.append((0, -i))
 
         #see if move distance falls in list of valid moves//////////////////
-        if (x2 - x1, y2 - y1) in valid_moves:
-            check = True
-        else:
-            check = False
-
-        #next, check parent classes validMove method before returning////////
-        if check == True and super().validMove(new):
-            return True
-        else:
-            return False
+        return (x2 - x1, y2 - y1) in valid_moves and super().validMove(new)
 
 class Bishop(chessPiece):
     def validMove(self, new):
-        check = False
         x1, y1 = self.coordinates
         x2, y2 = new
         valid_moves = []
@@ -264,137 +248,98 @@ class Bishop(chessPiece):
             #will need to create coordinates for maximum distance to move in each direction 
             #which is a difference of 7 squares
             #construct diagonal upright/downleft
-            valid_moves.append((i,i))
-            valid_moves.append((-i,-i))
+            valid_moves.append((i, i))
+            valid_moves.append((-i, -i))
             #construct diagonal upleft/downright
-            valid_moves.append((-i,i))
-            valid_moves.append((i,-i))
+            valid_moves.append((-i, i))
+            valid_moves.append((i, -i))
 
         #see if move distance falls in list of valid moves//////////////////
-        if (x2 - x1, y2 - y1) in valid_moves:
-            check = True
-        else:
-            check = False
-
-        #next, check parent classes validMove method before returning////////
-        if check == True and super().validMove(new):
-            return True
-        else:
-            return False
+        return (x2 - x1, y2 - y1) in valid_moves and super().validMove(new)
 
 class Knight(chessPiece):
     def validMove(self, new):
-        check = False
         x1, y1 = self.coordinates
         x2, y2 = new
         valid_moves = [(1, 2), (2, 1), (1, -2), (-2, 1), (-1, 2), (2, -1), (-1, -2), (-2, -1)]
 
         #see if move distance falls in list of valid moves//////////////////
-        if (x2 - x1, y2 - y1) in valid_moves:
-            check = True
-        else:
-            check = False
-
-        #next, check parent classes validMove method before returning////////
-        if check == True and super().validMove(new):
-            return True
-        else:
-            return False
+        return (x2 - x1, y2 - y1) in valid_moves and super().validMove(new)
         
 class Queen(chessPiece):
     def validMove(self, new):
-        check = False
         x1, y1 = self.coordinates
         x2, y2 = new
         valid_moves = []
-        for i in range(1,8):
+        for i in range(1, 8):
             #will need to create coordinates for maximum distance to move in each direction 
             #which is a difference of 7 squares
             #construct horizontal
-            valid_moves.append((i,0))
-            valid_moves.append((-i,0))
+            valid_moves.append((i, 0))
+            valid_moves.append((-i, 0))
             #construct vertical
-            valid_moves.append((0,i))
-            valid_moves.append((0,-i))
+            valid_moves.append((0, i))
+            valid_moves.append((0, -i))
             #construct diagonal upright/downleft
-            valid_moves.append((i,i))
-            valid_moves.append((-i,-i))
+            valid_moves.append((i, i))
+            valid_moves.append((-i, -i))
             #construct diagonal upleft/downright
-            valid_moves.append((-i,i))
-            valid_moves.append((i,-i))
+            valid_moves.append((-i, i))
+            valid_moves.append((i, -i))
 
         #see if move distance falls in list of valid moves//////////////////
-        if (x2 - x1, y2 - y1) in valid_moves:
-            check = True
-        else:
-            check = False
-
-        #next, check parent classes validMove method before returning////////
-        if check == True and super().validMove(new):
-            return True
-        else:
-            return False
+        return (x2 - x1, y2 - y1) in valid_moves and super().validMove(new)
 
 class King(chessPiece):
     def validMove(self, new):
-        check = False
         x1, y1 = self.coordinates
         x2, y2 = new
         valid_moves = [(0, 1), (1, 1), (1, 0), (1, -1), (0, 1), (-1, 1), (-1, 0), (-1, -1)]
 
         #see if move distance falls in list of valid moves//////////////////
-        if (x2 - x1, y2 - y1) in valid_moves:
-            check = True
-        else:
-            check = False
-
-        #next, check parent classes validMove method before returning////////
-        if check == True and super().validMove(new):
-            return True
-        else:
-            return False
+        return (x2 - x1, y2 - y1) in valid_moves and super().validMove(new)
 
 
 #set up initial pieces
 def create_pieces():
     #build white pieces
     pieces.extend([
-    Pawn('wP', (1,2)),
-    Pawn('wP', (2,2)),
-    Pawn('wP', (3,2)),
-    Pawn('wP', (4,2)),
-    Pawn('wP', (5,2)),
-    Pawn('wP', (6,2)),
-    Pawn('wP', (7,2)),
-    Pawn('wP', (8,2)),
-    Rook('wR', (1,1)),
-    Rook('wR', (8,1)),
-    Bishop('wB', (2,1)),
-    Bishop('wB', (7,1)),
-    Knight('wN', (3,1)),
-    Knight('wN', (6,1)),
-    King('wK', (4,1)),
-    Queen('wQ', (5,1)),
+    Pawn('wP', (1, 2)),
+    Pawn('wP', (2, 2)),
+    Pawn('wP', (3, 2)),
+    Pawn('wP', (4, 2)),
+    Pawn('wP', (5, 2)),
+    Pawn('wP', (6, 2)),
+    Pawn('wP', (7, 2)),
+    Pawn('wP', (8, 2)),
+    Rook('wR', (1, 1)),
+    Rook('wR', (8, 1)),
+    Bishop('wB', (2, 1)),
+    Bishop('wB', (7, 1)),
+    Knight('wN', (3, 1)),
+    Knight('wN', (6, 1)),
+    King('wK', (4, 1)),
+    Queen('wQ', (5, 1)),
 ])
   
     #build black pieces
     pieces.extend([
-    Pawn('bp', (1,7)), 
-    Pawn('bp', (2,7)),
-    Pawn('bp', (3,7)), 
-    Pawn('bp', (4,7)),
-    Pawn('bp', (5,7)), 
-    Pawn('bp', (6,7)),
-    Pawn('bp', (7,7)), 
-    Pawn('bp', (8,7)),
-    Rook('br', (1,8)),
-    Rook('br', (8,8)),
-    Bishop('bb', (2,8)),
-    Bishop('bb', (7,8)),
-    Knight('bn', (3,8)),
-    Knight('bn', (6,8)),
-    King('bk', (5,8)),
-    Queen('bq', (4,8)),
+    Pawn('bp', (1, 7)), 
+    Pawn('bp', (2, 7)),
+    Pawn('bp', (3, 7)), 
+    Pawn('bp', (4, 7)),
+    Pawn('bp', (5, 7)), 
+    Pawn('bp', (6, 7)),
+    Pawn('bp', (7, 7)), 
+    Pawn('bp', (8, 7)),
+    Rook('br', (1, 8)),
+    Rook('br', (8, 8)),
+    Bishop('bb', (2, 8)),
+    Bishop('bb', (7, 8)),
+    Knight('bn', (3, 8)),
+    Knight('bn', (6, 8)),
+    King('bk', (5, 8)),
+    Queen('bq', (4, 8)),
 ])
 
 #8x8, x-axis is a-h, y-axis is 1-8
@@ -447,11 +392,11 @@ def render_board():
     row_total = 16
     column_total = 8
     #render top row and bottom row statically
-    topline = (cb['rd'] + cb['rl'] * 3) + (cb['rdl'] + cb['rl'] * 3)*7 \
+    topline = (cb['rd'] + cb['rl'] * 3) + (cb['rdl'] + cb['rl'] * 3) * 7 \
          + cb['dl']
-    botline = (cb['ur'] + cb['rl'] * 3) + (cb['url'] + cb['rl'] * 3)*7 \
+    botline = (cb['ur'] + cb['rl'] * 3) + (cb['url'] + cb['rl'] * 3) * 7 \
          + cb['ul']
-    midline = (cb['urd'] + cb['rl'] * 3) + (cb['urdl'] + cb['rl'] * 3)*7 \
+    midline = (cb['urd'] + cb['rl'] * 3) + (cb['urdl'] + cb['rl'] * 3) * 7 \
          + cb['udl']
     
     #create list to store board so the function can return for printing
@@ -474,7 +419,8 @@ def render_board():
                     row += '│'
                     #search for pieces in class list at current coordinate 
                     #(j,i//2) is tuple where(i//2) to account for midline 
-                    # rows in between that skew current coordinates
+                    #the coordinates are 1-8 and midline effectively skews those nums
+                    #therefore deviding by 2 allocates rows properly
                     found_piece = False
                     for piece in pieces:
                         if (j,i//2) == piece.coordinates:
